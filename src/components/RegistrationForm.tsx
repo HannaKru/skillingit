@@ -2,7 +2,7 @@
 import React, {ReactElement, useState} from "react";
 import {Eye, EyeOff} from 'lucide-react';
 import {FcGoogle} from 'react-icons/fc'
-import {createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider} from 'firebase/auth'
+import {createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification} from 'firebase/auth'
 import {auth} from '@/lib/firebase'
 import { useRouter } from 'next/navigation'
 
@@ -122,27 +122,49 @@ export default function RegistrationForm(): React.ReactElement {
         setLoading (true);
         setFirebaseError("");
         try{
-            await createUserWithEmailAndPassword(
+            const userCredential= await createUserWithEmailAndPassword(
                 auth,
                 form.email,
                 form.password
             );
+
+            const user = userCredential.user;
+
+            await sendEmailVerification (user, {
+                url: `${window.location.origin}/login?verified=true`,
+                handleCodeInApp: true
+            });
+
+            console.log("Verification email sent to:", user.email);
+
             //success - forward to next page
-            router.push('/ValidateEmail');
+            router.push('/validate-email');
         }
         catch (error: any){
             console.error(error);
+
+            let errorMessage = "There was an error during registration, please try again.";
+
             //taking care of specific firebase errors
             switch (error.code){
                 case 'auth/email-already-in-use':
-                    setFirebaseError("Email already exists");
+                    errorMessage="Email already exists";
                     break;
                 case 'auth/weak-password':
-                    setFirebaseError("The password is too weak");
+                    errorMessage="The password is too weak";
                     break;
-                default:
-                    setFirebaseError("There was an error during the registration, please try again");
+                case 'auth/invalid-email':
+                    errorMessage="Email address is invalid";
+                    break;
+                case 'auth/operation-not-allowed':
+                    errorMessage="There was an error during registration, please try again."
+                    break;
+                case 'auth/user-disabled':
+                    errorMessage="User is disabled"
+                    break;
+
             }
+            setFirebaseError(errorMessage);
         }
         finally {
             setLoading(false);
@@ -154,7 +176,7 @@ export default function RegistrationForm(): React.ReactElement {
         const provider = new GoogleAuthProvider();
         try {
             await signInWithPopup(auth, provider);
-            await router.push('/ValidateEmail');
+            router.push('/ValidateEmail');
         }
         catch (error) {
             console.error(error);
@@ -187,7 +209,7 @@ export default function RegistrationForm(): React.ReactElement {
             </div>
             <form className="space-y-4" onSubmit={handleFormSubmit}>
                 <div className="input-group flex flex-col">
-                    <div className="input-group relative">
+                    <div className="input-group relative ">
 
                         <input
                             type="email"
@@ -195,13 +217,13 @@ export default function RegistrationForm(): React.ReactElement {
                             placeholder="Email"
                             value={form.email}
                             onChange={handleOnChange}
-                            className="w-full border px-3 py-2 rounded"
+                            className="w-full border px-5 py-3.5 rounded-full shadow"
                             required />
 
                         {errors.email && (<p className="text-small text-red-700 mt-2">{errors.email}</p>)}
                     </div>
 
-                    <div className="input-group relative">
+                    <div className="input-group relative ">
 
                         <input
                             type= {showPassword? "text":"password"}
@@ -209,7 +231,7 @@ export default function RegistrationForm(): React.ReactElement {
                             placeholder="Password"
                             value={form.password}
                             onChange={handleOnChange}
-                            className="w-full border px-3 py-2 rounded"
+                            className="w-full border py-3.5 px-5 rounded-full shadow "
                             required />
 
                         <button
@@ -220,14 +242,14 @@ export default function RegistrationForm(): React.ReactElement {
                         {errors.password && (<p className="text-small text-red-700 mt-2">{errors.password}</p>)}
                     </div>
 
-                    <div className="input-group relative">
+                    <div className="input-group relative ">
                         <input
                             type ={showPassword? "text":"password"}
                             name="password_confirmation"
                             placeholder="Password Confirmation"
                             value={form.password_confirmation}
                             onChange={handleOnChange}
-                            className="w-full border px-3 py-2 rounded"
+                            className="w-full border px-5 py-3.5 rounded-full shadow"
                             required />
 
                         {errors.password_confirmation && (<p className="text-sm text-red-700 mt-2">{errors.password_confirmation}</p>)}
@@ -260,7 +282,7 @@ export default function RegistrationForm(): React.ReactElement {
 
 
                 <div className="input-group relative">
-                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-full transition-colors">
+                    <button type="submit" className="w-full bg-[#6366f1] hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-full transition-colors">
                         {loading ? "Signing Up" : "Sign Up"}
                     </button>
 

@@ -10,6 +10,6 @@ export function middleware (request: NextRequest){
         return NextResponse.redirect(new URL('/LoginPage', request.url))
 
     }
-    return NextResponse.next;
+    return NextResponse.next();
 
 }

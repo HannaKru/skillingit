@@ -1,10 +1,12 @@
 import RegistrationForm from "@/components/RegistrationForm";
 export default function RegistrationPage() {
     return(
-        <div className= "min-h-screen flex">
+        <div className= "min-h-screen flex bg-white">
             {/* left side*/}
-            <div className="w-1/2 bg-purple-50 flex items-center justify-center">
-                <img src="/images/skillingItLoginIllustration.png" alt="regiser illustration" className="w-96"/>
+            <div className=" hidden lg:flex w-1/2 bg-[#f8fafc]  items-center justify-center p-12">
+                <div className="relative">
+                    <img src="/images/SKLITSignUp.png" alt="regiser illustration" className="w-96"/>
+                </div>
             </div>
 
             {/* right side */}

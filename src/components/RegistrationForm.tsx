@@ -1,29 +1,67 @@
 'use client';
-import React, {useState} from "react";
+import React, {ReactElement, useState} from "react";
 import {Eye, EyeOff} from 'lucide-react';
 import {FcGoogle} from 'react-icons/fc'
+import {createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider} from 'firebase/auth'
+import {auth} from '@/lib/firebase'
+import { useRouter } from 'next/navigation'
 
-type formErrors={
+type FormData = {
+    email: string;
+    password: string;
+    password_confirmation: string;
+    termsAndConditions: boolean;
+}
+
+
+type FormErrors={
     email?: string;
     password?: string;
     password_confirmation?:string;
     termsAndConditions?:string;
 };
 
+const EMAIL_REGEX= /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const STRONG_PASSWORD_REGEX= /^(?=.*[A-Z])(?=.*\d)(?=.*[a-z]).+$/;
+const MIN_PASSWORD_LENGTH = 6;
 
-export default function RegistrationForm() {
-    const [form, setForm]=useState({
+type FirebaseErrorCode= 'auth/email-already-in-use' | 'auth/weak-password' | 'auth/invalid-email' | 'auth/operation-not-allowed' | 'auth/user-disabled';
+const FIREBASE_ERROR_MESSAGES: Record<FirebaseErrorCode, string> = {
+    'auth/email-already-in-use': 'Email already exists. Please use a different email or login.',
+    'auth/weak-password': 'Password is too weak. Please use a stronger password.',
+    'auth/invalid-email': 'Invalid email address format.',
+    'auth/operation-not-allowed': 'Email/password accounts are not enabled. Please contact support.',
+    'auth/user-disabled': 'This account has been disabled. Please contact support.'
+
+}
+
+
+
+
+export default function RegistrationForm(): React.ReactElement {
+    const router= useRouter();
+    const [loading, setLoading] = useState<boolean> (false);
+    const [form, setForm]=useState<FormData>({
         email:"",
         password:"",
         password_confirmation:"",
         termsAndConditions:false
     });
-    const [showPassword, setShowPassword]=useState(false);
-    const [errors, setErrors]=useState<formErrors>({});
+    const [showPassword, setShowPassword]=useState<boolean>(false);
+    const [errors, setErrors]=useState<FormErrors>({});
+    const [firebaseError, setFirebaseError]=useState<string>("");
     const [submitted, setSubmitted]=useState(false);
 
+    const clearFieldError= (fieldName: keyof FormErrors):void=>{
+        setErrors((prev) => ({
+            ...prev,
+            [fieldName]: ""
+        }));
+    };
 
-    const handleOnChange=(event:React.ChangeEvent<HTMLInputElement>)=>{
+
+
+    const handleOnChange=(event:React.ChangeEvent<HTMLInputElement>): void=>{
         const {name, value}=event.target;
         setForm((prev)=>({
             ...prev,
@@ -43,8 +81,8 @@ export default function RegistrationForm() {
     };
 
 
-    const validate=(): formErrors => {
-        const newErrors: formErrors={};
+    const validate=(): FormErrors => {
+        const newErrors: FormErrors={};
         const strongPassReg=/^(?=.*[A-Z])(?=.*\d)(?=.*[a-z]).+$/;
         if(form.email.trim()==""){
             newErrors.email="Please enter an email address";
@@ -74,18 +112,59 @@ export default function RegistrationForm() {
 
     };
 
-    const handleFormSubmit=(event: React.FormEvent<HTMLFormElement>)=>{
+    const handleFormSubmit= async (event: React.FormEvent<HTMLFormElement>):Promise<void> =>{
         event.preventDefault();
         const validationErrors=validate();
-        if(Object.keys(validationErrors).length===0){
-            setSubmitted(true);
-        }
-        else {
+        if(Object.keys(validationErrors).length>0){
             setErrors(validationErrors);
-            setSubmitted(false);
+            return;
         }
+        setLoading (true);
+        setFirebaseError("");
+        try{
+            await createUserWithEmailAndPassword(
+                auth,
+                form.email,
+                form.password
+            );
+            //success - forward to next page
+            router.push('/ValidateEmail');
+        }
+        catch (error: any){
+            console.error(error);
+            //taking care of specific firebase errors
+            switch (error.code){
+                case 'auth/email-already-in-use':
+                    setFirebaseError("Email already exists");
+                    break;
+                case 'auth/weak-password':
+                    setFirebaseError("The password is too weak");
+                    break;
+                default:
+                    setFirebaseError("There was an error during the registration, please try again");
+            }
+        }
+        finally {
+            setLoading(false);
+        }
+    };
 
-    }
+    const handleGoogleSignUp= async() : Promise<void> => {
+        setLoading(true);
+        const provider = new GoogleAuthProvider();
+        try {
+            await signInWithPopup(auth, provider);
+            await router.push('/ValidateEmail');
+        }
+        catch (error) {
+            console.error(error);
+            setFirebaseError("Signup with Google failed.");
+
+        }
+        finally {
+            setLoading (false);
+        }
+    };
 
 
 
@@ -94,8 +173,11 @@ export default function RegistrationForm() {
         <div className="flex flex-col">
             <button
                 type="button"
+                onClick={handleGoogleSignUp}
+                disabled={loading}
                 className="w-full border border-gray-300 rounded-full py-2 px-4 flex items-center justify-center gap-2 hover:bg-gray-50">
                 <FcGoogle className="w-5 h-5"/>
+                {loading ? "..." : "Sign up with Google"}
             </button>
             {/*Divider*/}
             <div className="flex items-center gap-4 my-4">
@@ -170,9 +252,16 @@ export default function RegistrationForm() {
 
 
 
+                {firebaseError && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-600 txt-sm">{firebaseError}</p>
+                    </div>
+                )}
+
+
                 <div className="input-group relative">
                     <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-full transition-colors">
-                        Sign Up
+                        {loading ? "Signing Up" : "Sign Up"}
                     </button>
 
                 </div>

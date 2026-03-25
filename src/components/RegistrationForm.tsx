@@ -76,14 +76,12 @@ export default function RegistrationForm(): React.ReactElement {
     }
 
     const checkValidEmail=(email:string)=>{
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
+        return EMAIL_REGEX.test(email);
     };
 
 
     const validate=(): FormErrors => {
         const newErrors: FormErrors={};
-        const strongPassReg=/^(?=.*[A-Z])(?=.*\d)(?=.*[a-z]).+$/;
         if(form.email.trim()==""){
             newErrors.email="Please enter an email address";
         }
@@ -94,7 +92,7 @@ export default function RegistrationForm(): React.ReactElement {
         if(form.password.trim()===""){
             newErrors.password="Please enter a password"
         }
-        else if(!strongPassReg.test(form.password)){
+        else if(!STRONG_PASSWORD_REGEX.test(form.password)){
             newErrors.password="Password must contain an Uppercase letter, lowercase letter, and a number";
         }
         else if(form.password.length<6){
@@ -137,34 +135,24 @@ export default function RegistrationForm(): React.ReactElement {
 
             console.log("Verification email sent to:", user.email);
 
+            setForm({
+                email: '',
+                password: '',
+                password_confirmation: '',
+                termsAndConditions: false
+            })
+
             //success - forward to next page
             router.push('/validate-email');
         }
         catch (error: any){
             console.error(error);
+            const code = error.code as FirebaseErrorCode
 
-            let errorMessage = "There was an error during registration, please try again.";
+            const fallback = "There was an error during registration, please try again.";
+            setFirebaseError(FIREBASE_ERROR_MESSAGES[code] ?? fallback)
 
-            //taking care of specific firebase errors
-            switch (error.code){
-                case 'auth/email-already-in-use':
-                    errorMessage="Email already exists";
-                    break;
-                case 'auth/weak-password':
-                    errorMessage="The password is too weak";
-                    break;
-                case 'auth/invalid-email':
-                    errorMessage="Email address is invalid";
-                    break;
-                case 'auth/operation-not-allowed':
-                    errorMessage="There was an error during registration, please try again."
-                    break;
-                case 'auth/user-disabled':
-                    errorMessage="User is disabled"
-                    break;
 
-            }
-            setFirebaseError(errorMessage);
         }
         finally {
             setLoading(false);
@@ -187,9 +175,6 @@ export default function RegistrationForm(): React.ReactElement {
             setLoading (false);
         }
     };
-
-
-
 
     return (
         <div className="flex flex-col">
@@ -217,6 +202,7 @@ export default function RegistrationForm(): React.ReactElement {
                             placeholder="Email"
                             value={form.email}
                             onChange={handleOnChange}
+                            disabled={loading}
                             className="w-full border px-5 py-3.5 rounded-full shadow"
                             required />
 
@@ -231,6 +217,7 @@ export default function RegistrationForm(): React.ReactElement {
                             placeholder="Password"
                             value={form.password}
                             onChange={handleOnChange}
+                            disabled={loading}
                             className="w-full border py-3.5 px-5 rounded-full shadow "
                             required />
 
@@ -249,6 +236,7 @@ export default function RegistrationForm(): React.ReactElement {
                             placeholder="Password Confirmation"
                             value={form.password_confirmation}
                             onChange={handleOnChange}
+                            disabled={loading}
                             className="w-full border px-5 py-3.5 rounded-full shadow"
                             required />
 
@@ -260,6 +248,7 @@ export default function RegistrationForm(): React.ReactElement {
                         <input type="checkbox"
                                name="termsAndConditions"
                                checked ={form.termsAndConditions}
+                               disabled={loading}
                                onChange={(e)=>
                                 setForm(prev=>({
                                 ...prev,
@@ -282,7 +271,8 @@ export default function RegistrationForm(): React.ReactElement {
 
 
                 <div className="input-group relative">
-                    <button type="submit" className="w-full bg-[#6366f1] hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-full transition-colors">
+                    <button type="submit" className="w-full bg-[#6366f1] hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-full transition-colors"
+                    disabled={loading}>
                         {loading ? "Signing Up" : "Sign Up"}
                     </button>
 

@@ -92,13 +92,12 @@ export default function RegistrationForm(): React.ReactElement {
         if(form.password.trim()===""){
             newErrors.password="Please enter a password"
         }
+        else if(form.password.length<MIN_PASSWORD_LENGTH){
+            newErrors.password="Password must be at least 6 characters";
+        }
         else if(!STRONG_PASSWORD_REGEX.test(form.password)){
             newErrors.password="Password must contain an Uppercase letter, lowercase letter, and a number";
         }
-        else if(form.password.length<6){
-            newErrors.password="Password must be at least 6 characters";
-        }
-
         if(form.password !==  form.password_confirmation){
             newErrors.password_confirmation="Passwords do not match";
         }

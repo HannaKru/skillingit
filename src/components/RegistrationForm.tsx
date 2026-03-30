@@ -62,17 +62,15 @@ export default function RegistrationForm(): React.ReactElement {
 
 
     const handleOnChange=(event:React.ChangeEvent<HTMLInputElement>): void=>{
-        const {name, value}=event.target;
+        const {name, value, type, checked }=event.target;
         setForm((prev)=>({
             ...prev,
-            [name]:value
+            [name]:type === 'checkbox' ? checked : value
         }));
 
-        setErrors((prev)=>({
-            ...prev,
-            [name]:""
-
-            }));
+        if (name in errors){
+            clearFieldError(name as keyof FormErrors);
+        }
     }
 
     const checkValidEmail=(email:string)=>{

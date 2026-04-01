@@ -130,7 +130,26 @@ export default function RegistrationForm(): React.ReactElement {
                 handleCodeInApp: true
             });
 
-            console.log("Verification email sent to:", user.email);
+            const dbResponse = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: user.email,
+                    firebaseUid: user.uid,
+                    emailVerified: user.emailVerified
+
+                }),
+            });
+            if (!dbResponse.ok){
+                const errorData = await dbResponse.json();
+                throw new Error(errorData.error || 'Failed to sync with local database');
+            }
+
+
+
+            console.log("user synced with db and verification sent", user.email);
 
             setForm({
                 email: '',
@@ -246,11 +265,7 @@ export default function RegistrationForm(): React.ReactElement {
                                name="termsAndConditions"
                                checked ={form.termsAndConditions}
                                disabled={loading}
-                               onChange={(e)=>
-                                setForm(prev=>({
-                                ...prev,
-                                termsAndConditions:e.target.checked
-                            }))}
+                               onChange={handleOnChange}
                                className="h-4 w-4"
                         />
                         <label className="txt-sml cursor-pointer">I have read the terms and conditions</label>

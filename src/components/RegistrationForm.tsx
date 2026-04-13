@@ -148,7 +148,6 @@ export default function RegistrationForm(): React.ReactElement {
             }
 
 
-
             console.log("user synced with db and verification sent", user.email);
 
             setForm({
@@ -159,14 +158,18 @@ export default function RegistrationForm(): React.ReactElement {
             })
 
             //success - forward to next page
+            setSubmitted(true);
             router.push('/validate-email');
         }
         catch (error: any){
             console.error(error);
-            const code = error.code as FirebaseErrorCode
-
-            const fallback = "There was an error during registration, please try again.";
-            setFirebaseError(FIREBASE_ERROR_MESSAGES[code] ?? fallback)
+            const code = error.code as FirebaseErrorCode;
+            if (error.code && FIREBASE_ERROR_MESSAGES[code]){
+                setFirebaseError(FIREBASE_ERROR_MESSAGES[code]);
+            }
+            else{
+                setFirebaseError(error.message || 'Something went wring')
+            }
 
 
         }
@@ -179,8 +182,22 @@ export default function RegistrationForm(): React.ReactElement {
         setLoading(true);
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
-            router.push('/ValidateEmail');
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: user.email,
+                    firebaseUid: user.uid,
+                    emailVerified: user.emailVerified
+                }),
+            })
+
+            setSubmitted(true);
+            router.push('/verify-email');
         }
         catch (error) {
             console.error(error);

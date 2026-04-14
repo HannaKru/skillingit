@@ -143,6 +143,7 @@ export default function RegistrationForm(): React.ReactElement {
                 }),
             });
             if (!dbResponse.ok){
+                await user.delete(); //delete user from Firebase if db failed
                 const errorData = await dbResponse.json();
                 throw new Error(errorData.error || 'Failed to sync with local database');
             }

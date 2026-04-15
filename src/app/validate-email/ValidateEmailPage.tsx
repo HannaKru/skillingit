@@ -1,6 +1,6 @@
 'use client';
-import {useEffect, useState} from 'react';
-import {useRouter} from 'next/router';
+import {useEffect, useState, useRef} from 'react';
+import {useRouter} from 'next/navigation';
 import {auth} from '@/lib/firebase';
 import {onAuthStateChanged, sendEmailVerification} from 'firebase/auth';
 
@@ -10,18 +10,17 @@ export default function ValidateEmailPage(){
     const [email, setEmail] = useState('');
     const [resendDisabled, setResendDisabled]= useState(false);
     const [message, setMessage] = useState('');
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+
+    //function to clean the page
     useEffect(()=>{
-        // getting the email of the user who signed up
-        const user = auth.currentUser;
-        if(user?.email){
-            setEmail(user.email);
-        }
-        else{
-            router.push('/RegistrationPage')
-        }
-
-    }, [router]);
+        return ()=>{
+            if (intervalRef.current){
+                clearInterval(intervalRef.current);//clear the timer if the user leaves the page
+            }
+        };
+    },[]);
 
     const handleResendEmail = async()=>{
         if (resendDisabled) return;
@@ -31,8 +30,21 @@ export default function ValidateEmailPage(){
             return;
         }
         setResendDisabled(true);
-        setCountdown(60);//60 seconds till next resend
+        setCountdown(30);//30 seconds till next resend
         setMessage('');
+
+        //save the interval inside of ref
+        intervalRef.current = setInterval(()=>{
+            setCountdown((prev)=>{
+                if(prev <= 1){
+                    if (intervalRef.current) clearInterval(intervalRef.current);
+                    setResendDisabled(false);
+                    return 0;
+                }
+                return prev-1;
+            })
+        },1000);
+
         try{
             await sendEmailVerification(user, {
                 url: `${window.location.origin}/login?verified=true`,

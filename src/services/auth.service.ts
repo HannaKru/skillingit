@@ -10,7 +10,7 @@ export async function syncUserWithDatabase(user:any){
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
             email: user.email,
-            firebaseUud: user.uid,
+            firebaseUid: user.uid,
             emailVerified: user.emailVerified,
         })
     });

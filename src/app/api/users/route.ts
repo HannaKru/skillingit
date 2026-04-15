@@ -14,9 +14,9 @@ export async function POST (request: NextRequest){
         }
         //add user to db
         const result = await pool.query(
-            'INSERT INTO users (email, firebase_uid, email_verified, created_at)'+
+            'INSERT INTO users (email, firebase_uid, is_email_verified, account_created_at)'+
             'VALUES ($1, $2, $3, NOW())'+
-            'RETURNING id, email, email_verified, created_at',
+            'RETURNING id, email, is_email_verified, account_created_at',
             [email, firebaseUid, emailVerified]
         );
         return NextResponse.json({
@@ -37,7 +37,7 @@ export async function GET (request: NextRequest) {
     const email = searchParams.get('email');
     const firebaseUid = searchParams.get('firebase_uid')
     try {
-        let query = 'SELECT id, email, firebase_uid, email_verified FROM users';
+        let query = 'SELECT * FROM users';
         let params=[]
         if (email){
             query += ' WHERE email= $1'
@@ -47,12 +47,18 @@ export async function GET (request: NextRequest) {
             params=[firebaseUid]
         } else {
             return NextResponse.json(
-                {error : 'Missing search parameters'},
+                {error : 'Missing parameters'},
                 {status: 400}
-
             )
         }
-    } catch (e){
+        const result = await pool.query(query, params);
+        if (result.rows.length === 0){
+            return NextResponse.json({error: 'User not found'}, {status: 404});
+        }
+        return NextResponse.json(result.rows[0]);
 
+    } catch (error) {
+        console.error('Database error: ', error);
+        return NextResponse.json({error: 'Internal server error'}, {status: 500});
     }
 }

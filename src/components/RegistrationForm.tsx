@@ -310,7 +310,7 @@ export default function RegistrationForm(): React.ReactElement {
 
             </form>
             <p className="text-center mt-6 text-gray-600">
-                Already have an account? <a href="/login" className="text-blue-600 hover:underline"> Login </a>
+                Already have an account? <a href="/skillingit-frontend/src/login" className="text-blue-600 hover:underline"> Login </a>
             </p>
 
 

@@ -48,6 +48,7 @@ export default function RegistrationForm(): React.ReactElement {
         termsAndConditions:false
     });
     const [showPassword, setShowPassword]=useState<boolean>(false);
+    const [showPasswordConfirmation, setShowPasswordConfirmation]=useState<boolean>(false);
     const [errors, setErrors]=useState<FormErrors>({});
     const [firebaseError, setFirebaseError]=useState<string>("");
     const [submitted, setSubmitted]=useState(false);
@@ -227,7 +228,7 @@ export default function RegistrationForm(): React.ReactElement {
                 <div className="flex-1 border-t border-gray-300"></div>
             </div>
             <form className="space-y-4" onSubmit={handleFormSubmit}>
-                <div className="input-group flex flex-col">
+                <div className=" flex flex-col space-y-4">
                     <div className="input-group relative ">
 
                         <input
@@ -244,35 +245,43 @@ export default function RegistrationForm(): React.ReactElement {
                     </div>
 
                     <div className="input-group relative ">
-
                         <input
-                            type= {showPassword? "text":"password"}
+                            type={showPassword ? "text" : "password"}
                             name="password"
                             placeholder="Password"
                             value={form.password}
                             onChange={handleOnChange}
                             disabled={loading}
-                            className="w-full border py-3.5 px-5 rounded-full shadow "
-                            required />
+                            className="w-full border py-3.5 px-5 pr-12 rounded-full shadow"
+                            required
+                        />
 
                         <button
                             type="button"
-                            className="eye-button"
-                            onClick={()=>setShowPassword(prev=>!prev)}
-                        >{!showPassword? <Eye /> : <EyeOff />}</button>
-                        {errors.password && (<p className="text-small text-red-700 mt-2">{errors.password}</p>)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                            onClick={() => setShowPassword(prev => !prev)}
+                            disabled={loading}
+                        >
+                            {!showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                        </button>
                     </div>
 
                     <div className="input-group relative ">
                         <input
-                            type ={showPassword? "text":"password"}
+                            type ={showPasswordConfirmation? "text":"password"}
                             name="password_confirmation"
                             placeholder="Password Confirmation"
                             value={form.password_confirmation}
                             onChange={handleOnChange}
                             disabled={loading}
-                            className="w-full border px-5 py-3.5 rounded-full shadow"
+                            className="w-full border px-5 py-3.5 pr-12 rounded-full shadow"
                             required />
+
+                        <button
+                            type="button"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                            onClick={()=>setShowPasswordConfirmation(prev=>!prev)}
+                        >{!showPasswordConfirmation? <Eye size={18} /> : <EyeOff size={18} />}</button>
 
                         {errors.password_confirmation && (<p className="text-sm text-red-700 mt-2">{errors.password_confirmation}</p>)}
                     </div>

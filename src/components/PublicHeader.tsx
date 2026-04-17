@@ -16,20 +16,18 @@ export default function PublicHeader() {
                         onMouseLeave={() => setShowTooltip(false)}
                     >
 
-                        <div className="relative w-8 h-8 flex items-center justify-center">
-
+                        <div className="relative w-7 h-7">
                             <img
                                 src="/images/Vector84.svg"
                                 alt=""
-                                className="absolute -top-1 right-0 w-4 h-5"
+                                className="absolute right-0 top-0 w-4 h-5 z-10 -translate-x-4 -translate-y-1"
                             />
                             <img
                                 src="/images/Vector85.svg"
                                 alt=""
-                                className="absolute -bottom-1 left-0 w-4 h-5"
+                                className="absolute left-0 top-2 w-4 h-5 z-0"
                             />
                         </div>
-
                         <img
                             src="/images/Skillinit.svg"
                             alt="Skillinit"
@@ -52,7 +50,7 @@ export default function PublicHeader() {
                 <div className="flex items-center gap-3">
                     <Link
                         href="/login"
-                        className="rounded-full px-6 py-2.5 text-sm font-medium text-gray-700 transition-all hover:bg-gray-100"
+                        className="rounded-full border border-[#6366f1] bg-white px-6 py-2.5 text-sm font-medium text-[#6366f1] transition-all hover:bg-gray-100"
                     >
                         Log in
                     </Link>

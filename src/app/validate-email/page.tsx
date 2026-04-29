@@ -4,8 +4,10 @@ import {useRouter} from 'next/navigation';
 import {auth} from '@/lib/firebase';
 import {onAuthStateChanged, sendEmailVerification} from 'firebase/auth';
 import {Mail, RefreshCw} from 'lucide-react';
+import PublicHeader from "@/components/PublicHeader";
 
-export default function ValidateEmailPage() {
+
+export default function ValidateEmail() {
     const router = useRouter();
     const [countdown, setCountdown] = useState<number>(0);
     const [email, setEmail] = useState<string>('');
@@ -106,29 +108,19 @@ export default function ValidateEmailPage() {
             </div>
         );
     }
-
     return(
-        <div className="min-h-screen bg-white flex items-center justify-center p-6">
-            <div className="w-full max-w-2xl">
-                {/*header navigation*/}
-                <div className="flex justify-between items-center mb-12">
-                    <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold">SkillingIt</span>
-                    </div>
-                    <div className="flex gap-3">
-                        <button className="px-6 py-2 border border-gray-300 rounded-full text-sm forn-medium" onClick={()=>router.push('/login')}>
-                            Log In
-                        </button>
-                        <button>
-                            Sign Up
-                        </button>
-
-                    </div>
-
+        <div className="min-h-screen bg-white flex flex-col">
+            <PublicHeader/>
+            <main className="flex-1 flex items-center justify-center relative px-6 overflow-hidden">
+                <div className="hidden lg:block absolute left-10 bottom-20 animate-bounce-slow">
+                    <img src="/images/girl.svg" alt="girl" className="w-64" />
+                </div>
+                <div className="hidden lg:block absolute right-10 top-1/2 -translate-y-1/2">
+                    <img src="/images/boy.svg" alt="boy" className="w-72" />
                 </div>
 
-            </div>
 
+            </main>
         </div>
     );
 

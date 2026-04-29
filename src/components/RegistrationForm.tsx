@@ -6,6 +6,7 @@ import {createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sen
 import {auth} from '@/lib/firebase'
 import { useRouter } from 'next/navigation'
 
+
 type FormData = {
     email: string;
     password: string;

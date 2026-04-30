@@ -48,13 +48,22 @@ export default function ValidateEmail() {
     useEffect(() => {
         const interval = setInterval(async () => {
             const user = auth.currentUser;
-            if (user) {
-                await user.reload();
-                if (user.emailVerified) {
-                    clearInterval(interval);
-                    router.push('/onboarding')
-                }
+            if(!user) return;
+            await user.reload();
+            const refreshedUser=auth.currentUser;
+            if(refreshedUser?.emailVerified){
+                await fetch('api/users/verify-email',{
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        firebaseUid: user.uid,
+                        emailVerified: true,
+                    }),
+                });
+                clearInterval(interval);
+                router.push('/onboarding')
             }
+
         }, 3000);
         return () => clearInterval(interval);
     }, [router]);
@@ -115,8 +124,32 @@ export default function ValidateEmail() {
                 <div className="hidden lg:block absolute left-10 bottom-20 animate-bounce-slow">
                     <img src="/images/girl.svg" alt="girl" className="w-64" />
                 </div>
-                <div className="hidden lg:block absolute right-10 top-1/2 -translate-y-1/2">
+                <div className="hidden lg:block absolute right-10 top-1/4 -translate-y-1/2">
                     <img src="/images/boy.svg" alt="boy" className="w-72" />
+                </div>
+                <div className="absolute top-18 left-1/2 -translate-x-1/2 z-10 w-full max-w-md flex flex-col items-center text-center">
+                    <img src="/images/mail-symbol.svg" alt="mail-symbol" className="w-20 h-20" />
+                    <h1 className="text-3xl font-semibold text-gray-900 mb-4 ">
+                        Please verify your email
+                    </h1>
+                    <p className="text-gray-600">
+                        We have sent a verification link to <strong>{email}</strong>.
+                        <br/>
+                        Click  the link in the email to complete the verification process.
+                        <br/>
+                        <br/>
+                        Didn't get the email?
+                        <br/>
+                        Check your spam box or click here to {' '}
+                        <button
+                            type="button"
+                            onClick={handleResendEmail}
+                            disabled={countdown>0 || isResending}
+                            className="text-indigo-600 underline font-medium hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Resend email
+                        </button>
+                    </p>
                 </div>
 
 

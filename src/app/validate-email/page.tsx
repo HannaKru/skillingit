@@ -49,14 +49,14 @@ export default function ValidateEmail() {
         const interval = setInterval(async () => {
             const user = auth.currentUser;
             if(!user) return;
+
             await user.reload();
-            const refreshedUser=auth.currentUser;
-            if(refreshedUser?.emailVerified){
-                await fetch('api/users/verify-email',{
-                    method: 'POST',
+            if(auth.currentUser?.emailVerified){
+                await fetch('/api/users/verify-email',{
+                    method: 'PATCH',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        firebaseUid: user.uid,
+                        firebaseUid: auth.currentUser.uid,
                         emailVerified: true,
                     }),
                 });

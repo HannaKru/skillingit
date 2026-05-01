@@ -43,7 +43,7 @@ export async function GET (request: NextRequest) {
             query += ' WHERE email= $1'
             params=[email]
         } else if (firebaseUid){
-            query += 'WHERE firebase_uid = $1'
+            query += ' WHERE firebase_uid = $1'
             params=[firebaseUid]
         } else {
             return NextResponse.json(

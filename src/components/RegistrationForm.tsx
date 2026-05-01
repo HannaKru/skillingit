@@ -24,9 +24,15 @@ type FormErrors={
 
 const EMAIL_REGEX= /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STRONG_PASSWORD_REGEX= /^(?=.*[A-Z])(?=.*\d)(?=.*[a-z]).+$/;
+const PASSWORD_ALLOWED_REGEX = /^[A-Za-z0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]+$/;
 const MIN_PASSWORD_LENGTH = 6;
 
-type FirebaseErrorCode= 'auth/email-already-in-use' | 'auth/weak-password' | 'auth/invalid-email' | 'auth/operation-not-allowed' | 'auth/user-disabled';
+type FirebaseErrorCode= 'auth/email-already-in-use'
+    | 'auth/weak-password'
+    | 'auth/invalid-email'
+    | 'auth/operation-not-allowed'
+    | 'auth/user-disabled';
+
 const FIREBASE_ERROR_MESSAGES: Record<FirebaseErrorCode, string> = {
     'auth/email-already-in-use': 'Email already exists. Please use a different email or login.',
     'auth/weak-password': 'Password is too weak. Please use a stronger password.',
@@ -53,6 +59,7 @@ export default function RegistrationForm(): React.ReactElement {
     const [errors, setErrors]=useState<FormErrors>({});
     const [firebaseError, setFirebaseError]=useState<string>("");
     const [submitted, setSubmitted]=useState(false);
+    const [firebaseErrorCode, setFirebaseErrorCode]= useState<string>("");
 
     const clearFieldError= (fieldName: keyof FormErrors):void=>{
         setErrors((prev) => ({
@@ -95,6 +102,9 @@ export default function RegistrationForm(): React.ReactElement {
         else if(form.password.length<MIN_PASSWORD_LENGTH){
             newErrors.password="Password must be at least 6 characters";
         }
+        else if(!PASSWORD_ALLOWED_REGEX.test(form.password)){
+            newErrors.password="Password can only contain English letters, numbers, and symbols";
+        }
         else if(!STRONG_PASSWORD_REGEX.test(form.password)){
             newErrors.password="Password must contain an Uppercase letter, lowercase letter, and a number";
         }
@@ -109,14 +119,21 @@ export default function RegistrationForm(): React.ReactElement {
 
     };
 
+    const getFirebaseErrorMessage=(code?:string)=>{
+        if(!code) return 'Something went wrong';
+        return FIREBASE_ERROR_MESSAGES[code as FirebaseErrorCode] || 'Something went wrong';
+    };
+
     const handleFormSubmit= async (event: React.FormEvent<HTMLFormElement>):Promise<void> =>{
         event.preventDefault();
         const validationErrors=validate();
         if(Object.keys(validationErrors).length>0){
             setErrors(validationErrors);
+            setLoading(false);
             return;
         }
-        setLoading (true);
+        setErrors({});
+        setLoading(true);
         setFirebaseError("");
         try{
             const userCredential= await createUserWithEmailAndPassword(
@@ -166,15 +183,9 @@ export default function RegistrationForm(): React.ReactElement {
         }
         catch (error: any){
             console.error(error);
-            const code = error.code as FirebaseErrorCode;
-            if (error.code && FIREBASE_ERROR_MESSAGES[code]){
-                setFirebaseError(FIREBASE_ERROR_MESSAGES[code]);
-            }
-            else{
-                setFirebaseError(error.message || 'Something went wring')
-            }
-
-
+            const code = error?.code || '';
+            setFirebaseErrorCode(code);
+            setFirebaseError(getFirebaseErrorMessage(code));
         }
         finally {
             setLoading(false);
@@ -267,6 +278,10 @@ export default function RegistrationForm(): React.ReactElement {
                         </button>
                     </div>
 
+                    {errors.password && (
+                        <p className="text-sm text-red-700 mt-2">{errors.password}</p>
+                    )}
+
                     <div className="input-group relative ">
                         <input
                             type ={showPasswordConfirmation? "text":"password"}
@@ -304,8 +319,19 @@ export default function RegistrationForm(): React.ReactElement {
 
 
                 {firebaseError && (
-                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex flex-col justify-center mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                         <p className="text-red-600 txt-sm">{firebaseError}</p>
+                        {firebaseErrorCode==='auth/email-already-in-use' && (
+                            <button
+                            type="button"
+                            onClick={()=>router.push('/login')}
+                            className=" mt-2 text-indigo-600 underline font-medium hover:text-indigo-800"
+                            >
+                                Login
+                            </button>
+                        )
+
+                        }
                     </div>
                 )}
 

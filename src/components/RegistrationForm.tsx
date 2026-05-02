@@ -129,12 +129,12 @@ export default function RegistrationForm(): React.ReactElement {
         const validationErrors=validate();
         if(Object.keys(validationErrors).length>0){
             setErrors(validationErrors);
-            setLoading(false);
             return;
         }
         setErrors({});
         setLoading(true);
         setFirebaseError("");
+        setFirebaseErrorCode("");
         try{
             const userCredential= await createUserWithEmailAndPassword(
                 auth,
@@ -182,10 +182,16 @@ export default function RegistrationForm(): React.ReactElement {
             router.push('/validate-email');
         }
         catch (error: any){
-            console.error(error);
-            const code = error?.code || '';
-            setFirebaseErrorCode(code);
-            setFirebaseError(getFirebaseErrorMessage(code));
+            console.error("Registration error: ", error);
+            if(error instanceof Error){
+                const code = (error as any)?.code || "";
+                setFirebaseErrorCode(code);
+                setFirebaseError(getFirebaseErrorMessage(code));
+            }
+            else{
+               setFirebaseError('Registration failed. Please try again');
+            }
+
         }
         finally {
             setLoading(false);
@@ -194,11 +200,28 @@ export default function RegistrationForm(): React.ReactElement {
 
     const handleGoogleSignUp= async() : Promise<void> => {
         setLoading(true);
+        setFirebaseError("");
+        setFirebaseErrorCode("");
         const provider = new GoogleAuthProvider();
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
-            await fetch('/api/users', {
+            const creationTime= new Date(user.metadata.creationTime!).getTime();
+            const lastSignInTime= new Date(user.metadata.lastSignInTime!).getTime();
+            //check if new user
+            const isNewUser=Math.abs(creationTime-lastSignInTime)<2000; //less than 2 seconds
+
+            //existing user - show error
+            if(!isNewUser){
+                setFirebaseError('Account already exists. Please login instead.');
+                setFirebaseErrorCode('auth/email-already-in-use')
+                await auth.signOut();
+                return;
+
+            }
+
+            //new user - save to db
+            const dbResponse= await fetch('/api/users', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -208,14 +231,40 @@ export default function RegistrationForm(): React.ReactElement {
                     firebaseUid: user.uid,
                     emailVerified: user.emailVerified
                 }),
-            })
+            });
 
+            if (!dbResponse.ok) {
+                const errorData = await dbResponse.json();
+
+                //if user is already in db
+                if (errorData.error === 'User already exists') {
+                    setFirebaseError('Account already exists. Please login instead.');
+                    setFirebaseErrorCode('auth/email-already-in-use');
+                    await auth.signOut();
+                    return;
+                }
+
+                await user.delete();
+                throw new Error(errorData.error || 'Failed to sync with database');
+            }
+            console.log('Google user synced with db: ', user.email);
             setSubmitted(true);
-            router.push('/verify-email');
+            router.push('/onboarding'); // email already verified becuase sign up with google
         }
         catch (error) {
             console.error(error);
-            setFirebaseError("Signup with Google failed.");
+            if (error instanceof Error) {
+                setFirebaseError(error.message);
+            } else{
+                setFirebaseError('Signup with Google failed');
+            }
+
+            //cleanup
+            const currentUser= auth.currentUser;
+            if(currentUser){
+                await currentUser.delete().catch(e=>console.error("Cleanup failed: ", e));
+            }
+
 
         }
         finally {
@@ -346,7 +395,7 @@ export default function RegistrationForm(): React.ReactElement {
 
             </form>
             <p className="text-center mt-6 text-gray-600">
-                Already have an account? <a href="/skillingit-frontend/src/login" className="text-blue-600 hover:underline"> Login </a>
+                Already have an account? <a href="/login" className="text-blue-600 hover:underline"> Login </a>
             </p>
 
 

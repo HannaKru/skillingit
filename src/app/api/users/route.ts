@@ -15,7 +15,7 @@ export async function POST (request: NextRequest){
         //add user to db
         const result = await pool.query(
             'INSERT INTO users (email, firebase_uid, is_email_verified, account_created_at)'+
-            'VALUES ($1, $2, $3, NOW())'+
+            'VALUES ($1, $2, $3, NOW()) '+
             'RETURNING id, email, is_email_verified, account_created_at',
             [email, firebaseUid, emailVerified]
         );

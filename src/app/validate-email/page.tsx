@@ -3,7 +3,6 @@ import {useEffect, useState, useRef} from 'react';
 import {useRouter} from 'next/navigation';
 import {auth} from '@/lib/firebase';
 import {onAuthStateChanged, sendEmailVerification} from 'firebase/auth';
-import {Mail, RefreshCw} from 'lucide-react';
 import PublicHeader from "@/components/PublicHeader";
 
 

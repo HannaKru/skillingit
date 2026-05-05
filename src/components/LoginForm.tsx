@@ -1,6 +1,6 @@
-import {useState} from "react";
+import React, {useState} from "react";
 import { useRouter } from 'next/navigation'
-import {Eye, EyeOff} from 'lucide-react';
+import {Eye, EyeOff, RefreshCw} from 'lucide-react';
 import {FcGoogle} from 'react-icons/fc';
 import {signInWithPopup, GoogleAuthProvider, sendEmailVerification, signInWithEmailAndPassword} from 'firebase/auth'
 import {auth} from '@/lib/firebase'
@@ -13,31 +13,46 @@ export default function LoginForm(){
     const [loading, setLoading]=useState<boolean>(false);
     const [error,setError]=useState<string>("");
 
+    const syncLoginAndNavigate=async (user:any, isSSO:boolean)=>{
+        const response = await fetch('api/users/login',{
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                firebaseUid:user.id,
+                email: user.umail,
+                isEmailVerified: user.emailVerified,
+                isSSO: isSSO
+            })
+
+        })
+        const data = await response.json();
+        if(response.ok){
+            if(!data.user.is_profile_completed)
+                router.push('/onboarding');
+            else
+                router.push('/dashboard');
+        }
+        else{
+            throw new Error (data.error || "Failed to sync with database");
+        }
+    };
+
     const handleLoginWithGoogle=async ()=>{
         setLoading(true);
         setError("");
         const provider = new GoogleAuthProvider();
         try{
             const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-
-            const checkResponse=await fetch(`api/users?firebase_uid=${user.uid}`)
-
-            await fetch('api/users/login',{
-                method: 'PATCH',
-                headers:{'Content-Type': 'application/json'},
-                body: JSON.stringify({firebaseUid: user.uid})
-
-            })
+            await syncLoginAndNavigate(result.user, true);
 
         }
-        catch(error){
-
+        catch(error:any){
+            console.error(error);
+            setError("Google login failed");
         }
         finally{
             setLoading(false);
         }
-
 
     };
 
@@ -56,13 +71,10 @@ export default function LoginForm(){
                 router.push('/validate-email');
                 return;
             }
-            //email is validated - go to dashboard
 
-            await fetch('api/users/login', {
-                method: 'PATCH',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({firebaseUid: user.uid})
-            })
+            await syncLoginAndNavigate(user, false);
+
+
         }
         catch(error: any){
             console.error(error);
@@ -85,6 +97,78 @@ export default function LoginForm(){
             setLoading(false);
         }
     };
+
+    return(
+        <div className="flex flex-col">
+            <button
+                type="button"
+                onClick={handleLoginWithGoogle}
+                disabled={loading}
+                className="w-full border border-gray-300 rounded-full py-2 px-4 flex items-center justify-center gap-2 hover:bg-gray-50">
+                <FcGoogle className="w-5 h-5"/>
+                {loading ? "..." : "Login with Google"}
+            </button>
+            {/*Divider*/}
+            <div className="flex items-center gap-4 my-4">
+                <div className="flex-1 border-t border-gray-300"></div>
+                <span className="text-gray-500 text-sm">or</span>
+                <div className="flex-1 border-t border-gray-300"></div>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleSignInWithEmail}>
+                <div className="space-y-4">
+                    <input
+                        type="text"
+                        value={email}
+                        placeholder="Email"
+                        onChange={(e)=>setEmail(e.target.value)}
+                        disabled={loading}
+                        className="w-full border px-5 py-3.5 rounded-full shadow"
+                        required
+                    />
+
+                    <div className="input-group relative ">
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            placeholder="Password"
+                            value={password}
+                            onChange={(e)=>setPassword(e.target.value)}
+                            disabled={loading}
+                            className="w-full border py-3.5 px-5 pr-12 rounded-full shadow"
+                            required
+                        />
+
+                        <button
+                            type="button"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                            onClick={() => setShowPassword(prev => !prev)}
+                            disabled={loading}
+                        >
+                            {!showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="p-3 bg-red-50 border border-red-100 rounded-xl">
+                            <p className="text-red-600 text-sm text-center font-medium">{error}</p>
+                        </div>
+                    )}
+
+                    <div className="input-group relative">
+                        <button type="submit" className="w-full bg-[#6366f1] hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-full transition-colors"
+                                disabled={loading}>
+                            {loading ? <RefreshCw className="animate-spin"/> : "Login"}
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+    );
 
 
 }

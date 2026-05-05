@@ -3,31 +3,41 @@ import {pool} from '../db';
 
 export async function PATCH(request: NextRequest){
     try{
-        const {firebaseUid}=await request.json();
-        if(!firebaseUid){
+        const {firebaseUid, email, isEmailVerified, isSSO}=await request.json();
+        if(!firebaseUid || !email){
             return NextResponse.json(
-                {error:'firebaseUid is required'},
+                {error:'firebaseUid and email are required'},
                 {status:400}
             );
         }
-        const result = await pool.query(
+        const updateResult = await pool.query(
             `UPDATE users
             SET last_login=NOW(), 
                 is_online=true,
-                last_seen=NOW()
-                WHERE firebas_uid=$1
-                RETURNING id, email,last_login`,[firebaseUid]
+                last_seen=NOW(),
+                firebas_uid=$1, is_email_verified=$2,
+                WHERE firebase_uid=$1 OR email=$3
+                RETURNING id, email,profile_complete`,[firebaseUid, isEmailVerified, email]
         );
 
-        if(result.rows.length === 0){
-            return NextResponse.json(
-                {error:'User not found'},
-                {status:404}
-            );
+        if(updateResult.rows.length === 0){
+            if(isSSO){
+                const insertResult= await pool.query(
+                    `INSERT INTO users (email, firebase_uid, is_email_verified, account_created_at, last_login, is_online)
+                    VALUES ($1, $2, $3, NOW(), NOW(), true)`, [email, firebaseUid,isEmailVerified]
+                );
+                return NextResponse.json({user: insertResult.rows[0], isNewUser: true});
+            }
+            else {
+                return NextResponse.json(
+                    {error: 'User not found'},
+                    {status: 404}
+                );
+            }
         }
         return NextResponse.json({
             message: 'Login updated successfully',
-            user: result.rows[0]
+            user: updateResult.rows[0]
         });
     }
     catch(error){

@@ -23,7 +23,7 @@ export default function LoginPage(){
                 <div className="w-1/2 flex items-center justify-center p-6 lg:p-8">
                     <div className="w-full max-w-md">
                         <h1 className="text-4xl font-semibold text-center mb-8 text-gray-900">Welcome Back!</h1>
-
+                        <LoginForm/>
                     </div>
                 </div>
             </div>

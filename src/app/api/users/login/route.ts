@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest){
             SET last_login=NOW(), 
                 is_online=true,
                 last_seen=NOW(),
-                firebas_uid=$1, is_email_verified=$2,
+                firebase_uid=$1, is_email_verified=$2
                 WHERE firebase_uid=$1 OR email=$3
                 RETURNING id, email,profile_complete`,[firebaseUid, isEmailVerified, email]
         );
@@ -24,7 +24,8 @@ export async function PATCH(request: NextRequest){
             if(isSSO){
                 const insertResult= await pool.query(
                     `INSERT INTO users (email, firebase_uid, is_email_verified, account_created_at, last_login, is_online)
-                    VALUES ($1, $2, $3, NOW(), NOW(), true)`, [email, firebaseUid,isEmailVerified]
+                    VALUES ($1, $2, $3, NOW(), NOW(), true)
+                    RETURNING id, email, profile_complete`, [email, firebaseUid,isEmailVerified]
                 );
                 return NextResponse.json({user: insertResult.rows[0], isNewUser: true});
             }

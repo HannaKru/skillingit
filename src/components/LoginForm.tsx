@@ -1,3 +1,4 @@
+'use client';
 import React, {useState} from "react";
 import { useRouter } from 'next/navigation'
 import {Eye, EyeOff, RefreshCw} from 'lucide-react';
@@ -14,20 +15,23 @@ export default function LoginForm(){
     const [error,setError]=useState<string>("");
 
     const syncLoginAndNavigate=async (user:any, isSSO:boolean)=>{
-        const response = await fetch('api/users/login',{
+        const response = await fetch('/api/users/login',{
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                firebaseUid:user.id,
-                email: user.umail,
+                firebaseUid:user.uid,
+                email: user.email,
                 isEmailVerified: user.emailVerified,
                 isSSO: isSSO
             })
 
         })
         const data = await response.json();
+
+        console.log("API response: ", data);
+
         if(response.ok){
-            if(!data.user.is_profile_completed)
+            if(!data.user.profile_complete)
                 router.push('/onboarding');
             else
                 router.push('/dashboard');
@@ -58,6 +62,14 @@ export default function LoginForm(){
 
     const handleSignInWithEmail=async(e:React.FormEvent)=>{
         e.preventDefault();
+        if(!email.trim()){
+            setError("Please enter your email");
+            return;
+        }
+        if(!password.trim()){
+            setError("Please enter your password");
+            return;
+        }
         setLoading(true);
         setError("");
         try{
@@ -87,6 +99,12 @@ export default function LoginForm(){
                     break;
                 case 'auth/too-many-requests':
                     setError("Too many failed attempts. Please try again later.");
+                    break;
+                case 'auth/invalid-credentials':
+                    setError("Email or password is incorrect.");
+                    break;
+                case 'auth/invalid-email':
+                    setError("Invalid email format.");
                     break;
                 default:
                     setError("Login failed. Please try again.");

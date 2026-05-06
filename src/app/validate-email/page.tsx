@@ -79,7 +79,7 @@ export default function ValidateEmail() {
 
         try {
             await sendEmailVerification(user, {
-                url: `${window.location.origin}/login?verified=true`,
+                url: `${window.location.origin}/email-verified`,
                 handleCodeInApp: true,
             });
             setMessage('Verification email sent! Please check your inbox.');

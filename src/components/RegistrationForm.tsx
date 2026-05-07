@@ -145,8 +145,8 @@ export default function RegistrationForm(): React.ReactElement {
             const user = userCredential.user;
 
             await sendEmailVerification (user, {
-                url: `${window.location.origin}/login?verified=true`,
-                handleCodeInApp: true
+                url: `${window.location.origin}/email-verified?email=${encodeURIComponent(user.email || '')}`,
+                handleCodeInApp: false
             });
 
             const dbResponse = await fetch('/api/users', {

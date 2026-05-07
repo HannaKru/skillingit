@@ -43,29 +43,7 @@ export default function ValidateEmail() {
         return () => unsubscribe();
     }, [router])
 
-    //check every 3 seconds if the email was verified
-    useEffect(() => {
-        const interval = setInterval(async () => {
-            const user = auth.currentUser;
-            if(!user) return;
 
-            await user.reload();
-            if(auth.currentUser?.emailVerified){
-                await fetch('/api/users/verify-email',{
-                    method: 'PATCH',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        firebaseUid: auth.currentUser.uid,
-                        emailVerified: true,
-                    }),
-                });
-                clearInterval(interval);
-                router.push('/onboarding')
-            }
-
-        }, 3000);
-        return () => clearInterval(interval);
-    }, [router]);
 
     const handleResendEmail = async () => {
         if (countdown > 0 || isResending) return;
@@ -79,8 +57,8 @@ export default function ValidateEmail() {
 
         try {
             await sendEmailVerification(user, {
-                url: `${window.location.origin}/email-verified`,
-                handleCodeInApp: true,
+                url: `${window.location.origin}/email-verified?email=${encodeURIComponent(user.email || '')}`,
+                handleCodeInApp: false,
             });
             setMessage('Verification email sent! Please check your inbox.');
             setCountdown(30);

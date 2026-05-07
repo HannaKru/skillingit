@@ -1,6 +1,6 @@
 'use client';
-import React, {useState} from "react";
-import { useRouter } from 'next/navigation'
+import React, {useState, useEffect} from "react";
+import { useRouter, useSearchParams } from 'next/navigation'
 import {Eye, EyeOff, RefreshCw} from 'lucide-react';
 import {FcGoogle} from 'react-icons/fc';
 import {signInWithPopup, GoogleAuthProvider, sendEmailVerification, signInWithEmailAndPassword} from 'firebase/auth'
@@ -8,11 +8,17 @@ import {auth} from '@/lib/firebase'
 
 export default function LoginForm(){
     const router= useRouter();
+    const searchParams= useSearchParams();
     const [email, setEmail]=useState<string>("");
     const [password, setPassword]=useState<string>("");
     const [showPassword, setShowPassword]=useState<boolean>(false);
     const [loading, setLoading]=useState<boolean>(false);
     const [error,setError]=useState<string>("");
+
+    useEffect(()=>{
+        const emailFromQuery= searchParams.get('email');
+        if(emailFromQuery) setEmail(emailFromQuery);
+    },[searchParams]);
 
     const syncLoginAndNavigate=async (user:any, isSSO:boolean)=>{
         const response = await fetch('/api/users/login',{
@@ -78,7 +84,7 @@ export default function LoginForm(){
             if(!user.emailVerified){ //check if the email is validated
                 await sendEmailVerification(user,{ //send email again
                     url:`${window.location.origin}/login?verified=true`,
-                    handleCodeInApp:true
+                    handleCodeInApp:false
                 });
                 router.push('/validate-email');
                 return;
@@ -115,6 +121,8 @@ export default function LoginForm(){
             setLoading(false);
         }
     };
+
+
 
     return(
         <div className="flex flex-col">

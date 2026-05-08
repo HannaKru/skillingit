@@ -33,6 +33,11 @@ export default function ValidateEmail() {
                 return;
             }
             setEmail(user.email || '');
+
+            if(user.email){
+                sessionStorage.setItem('pendingVerificationEmail', user.email);
+            }
+
             //if email is already verified - jump to onboarding
             if (user.emailVerified) {
                 router.push('/onboarding');

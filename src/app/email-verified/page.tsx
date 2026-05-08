@@ -13,20 +13,24 @@ export default function EmailVerifiedPage() {
     const [errorMessage, setErrorMessage]=useState<string>('');
 
 
+
     useEffect(() => {
-        const oobCode=searchParams.get('oobCode');
-        const email =searchParams.get('email') || '';
-
-        console.log("oobCode: ", oobCode);
-        console.log("email: ", email);
-
-        if(!oobCode){
-            setStatus('error');
-            setErrorMessage("Invalid verification link");
-            return;
-        }
 
         const verifyEmail = async()=>{
+            const oobCode=searchParams.get('oobCode');
+            let email: string | null = '';
+            if(typeof window !== 'undefined'){
+                email=sessionStorage.getItem('pendingVerificationEmail');
+            }
+            console.log("oobCode: ", oobCode);
+            console.log("email from storage: ", email);
+
+            if(!oobCode){
+                setStatus('error');
+                setErrorMessage("Invalid verification link");
+                return;
+            }
+
             try{
                 await applyActionCode(auth, oobCode);
 
@@ -42,8 +46,16 @@ export default function EmailVerifiedPage() {
                     });
                 }
                 setStatus('success');
+
+                if(email && typeof window !== 'undefined'){
+                    sessionStorage.setItem('verifiedEmail', email);
+                    sessionStorage.removeItem('pendingVerificationEmail');
+                } else if (currentUser?.email && typeof window !== 'undefined'){
+                    sessionStorage.setItem('verifiedEmail', currentUser.email);
+                }
+
                 setTimeout(()=>{
-                    router.push(`/login?email=${encodeURIComponent(email)}`)
+                    router.push(`/login`)
                 },1500);
             }
             catch(err: any){
@@ -52,8 +64,10 @@ export default function EmailVerifiedPage() {
                 setErrorMessage(err.message || 'verification failied')
             }
         };
+
         verifyEmail();
     }, [router, searchParams]);
+
 
     return (
         <div className="min-h-screen bg-white flex flex-col">

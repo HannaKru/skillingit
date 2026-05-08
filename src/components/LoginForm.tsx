@@ -16,7 +16,16 @@ export default function LoginForm(){
     const [error,setError]=useState<string>("");
 
     useEffect(()=>{
+
+        const savedEmail=sessionStorage.getItem('verifiedEmail');
+        if(savedEmail){
+            setEmail(savedEmail);
+            sessionStorage.removeItem('verifiedEmail');
+            return;
+        }
+
         const emailFromQuery= searchParams.get('email');
+        console.log("email from query: ", emailFromQuery);
         if(emailFromQuery) setEmail(emailFromQuery);
     },[searchParams]);
 

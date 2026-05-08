@@ -143,9 +143,10 @@ export default function RegistrationForm(): React.ReactElement {
             );
 
             const user = userCredential.user;
+            sessionStorage.setItem('pendingVerificationEmail', user.email || '');
 
             await sendEmailVerification (user, {
-                url: `${window.location.origin}/email-verified?email=${encodeURIComponent(user.email || '')}`,
+                url: `${window.location.origin}/email-verified`,
                 handleCodeInApp: false
             });
 

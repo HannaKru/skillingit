@@ -93,8 +93,8 @@ export default function EmailVerifiedPage() {
                         <p className="text-red-600 font-medium">Verification failed</p>
                         <p className="text-gray-600 mb-6">{errorMessage || 'The link may be invalid'}</p>
                         <button
-                           onClick={()=>router.push('/registration')}
-                           className="text-indigo-600 underline font-medium hover:text-indigo-800"
+                            onClick={()=>router.push('/registration')}
+                            className="text-indigo-600 underline font-medium hover:text-indigo-800"
                         >
                             Back to registration
                         </button>

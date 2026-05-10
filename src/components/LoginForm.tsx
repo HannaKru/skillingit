@@ -3,7 +3,7 @@ import React, {useState, useEffect} from "react";
 import { useRouter, useSearchParams } from 'next/navigation'
 import {Eye, EyeOff, RefreshCw} from 'lucide-react';
 import {FcGoogle} from 'react-icons/fc';
-import {signInWithPopup, GoogleAuthProvider, sendEmailVerification, signInWithEmailAndPassword} from 'firebase/auth'
+import {signInWithPopup, GoogleAuthProvider, sendEmailVerification, signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence} from 'firebase/auth'
 import {auth} from '@/lib/firebase'
 
 export default function LoginForm(){
@@ -14,20 +14,99 @@ export default function LoginForm(){
     const [showPassword, setShowPassword]=useState<boolean>(false);
     const [loading, setLoading]=useState<boolean>(false);
     const [error,setError]=useState<string>("");
+    const [rememberMe, setRememberMe] = useState<boolean>(false);
+    const [autoLoginAttempted, setAutoLoginAttempted] = useState<boolean>(false);
 
-    useEffect(()=>{
+    useEffect( ()=>{ //load saved components + auto login
 
-        const savedEmail=sessionStorage.getItem('verifiedEmail');
-        if(savedEmail){
-            setEmail(savedEmail);
-            sessionStorage.removeItem('verifiedEmail');
-            return;
+        const checkAutoLogin=async()=> {
+            const currentUser = auth.currentUser;
+            if (currentUser && currentUser.emailVerified) { //already logged in - route to dashboard
+                const response = await fetch('/api/users/login', {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        firebaseUid: currentUser.uid,
+                        email: currentUser.email,
+                        isEmailVerified: currentUser.emailVerified,
+                        isSSO: false
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    if (!data.user.profile_complete) {
+                        router.push('/onboarding');
+                    } else {
+                        router.push('/dashboard');
+                    }
+                }
+                return;
+            }
+            //check remember me from local storage
+            const rememberedEmail = localStorage.getItem('rememberedEmail') || '';
+            const rememberedPassword = localStorage.getItem('rememberedPassword') || '';
+
+            if (rememberedEmail && rememberedPassword && !autoLoginAttempted) {
+                setAutoLoginAttempted(true);
+                setEmail(rememberedEmail);
+                setRememberMe(true);
+
+                //auto login
+                try {
+                    setLoading(true);
+                    await setPersistence(auth, browserLocalPersistence);
+                    const userCredential = await signInWithEmailAndPassword(auth, rememberedEmail, rememberedPassword);
+                    const user = userCredential.user;
+                    if (!user.emailVerified) {
+                        await sendEmailVerification(user, {
+                            url: `${window.location.origin}/email-verified`,
+                            handleCodeInApp: false
+                        });
+                        router.push('/validate-email')
+                    }
+                    //login succeeded - update db
+                    const response = await fetch('/api/users/login', {
+                        method: 'PATCH',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            firebaseUid: user.uid,
+                            email: user.email,
+                            isEmailVerified: user.emailVerified,
+                            isSSO: false
+                        })
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        if (!data.user.profile_complete) {
+                            router.push('/onboarding');
+                        } else {
+                            router.push('/dashboard');
+                        }
+                    }
+                } catch (error: any) {
+                    console.error("Auto login failed, ", error);
+                    //clean the saved parameters
+                    localStorage.removeItem('rememberedEmail');
+                    localStorage.removeItem('rememberedPassword');
+                    setRememberMe(false);
+                    setError("Auto-login failed, please login manually.");
+                } finally {
+                    setLoading(false);
+                }
+            }
+            //fill the email after beinn router from validate email
+            const savedEmail = sessionStorage.getItem('verifiedEmail'); //email from validate-email
+            if (savedEmail) {
+                setEmail(savedEmail);
+                sessionStorage.removeItem('verifiedEmail');
+            }
+            const emailFromQuery = searchParams.get('email');
+
+            console.log("email from query: ", emailFromQuery);
+            if (emailFromQuery) setEmail(emailFromQuery);
         }
-
-        const emailFromQuery= searchParams.get('email');
-        console.log("email from query: ", emailFromQuery);
-        if(emailFromQuery) setEmail(emailFromQuery);
-    },[searchParams]);
+        checkAutoLogin();
+    },[router, searchParams,autoLoginAttempted]);
 
     const syncLoginAndNavigate=async (user:any, isSSO:boolean)=>{
         const response = await fetch('/api/users/login',{
@@ -88,6 +167,17 @@ export default function LoginForm(){
         setLoading(true);
         setError("");
         try{
+
+            if(rememberMe){
+                await setPersistence(auth, browserLocalPersistence);
+                localStorage.setItem('rememberedEmail', email);
+                localStorage.setItem('rememberedPasswoed', password);
+            } else{
+                await setPersistence(auth, browserLocalPersistence);
+                localStorage.removeItem('rememberedEmail');
+                localStorage.removeItem('rememberedPassword');
+            }
+
             const userCredential=await signInWithEmailAndPassword(auth, email, password);
             const user= userCredential.user;
             if(!user.emailVerified){ //check if the email is validated
@@ -100,7 +190,6 @@ export default function LoginForm(){
             }
 
             await syncLoginAndNavigate(user, false);
-
 
         }
         catch(error: any){
@@ -184,11 +273,25 @@ export default function LoginForm(){
                         </button>
                     </div>
 
+
+                    <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e)=>setRememberMe(e.target.checked)}
+                            />
+                            <span className="text-sm text-gray-600 ">Remember me</span>
+                        </label>
+                    </div>
+
                     {error && (
                         <div className="p-3 bg-red-50 border border-red-100 rounded-xl">
                             <p className="text-red-600 text-sm text-center font-medium">{error}</p>
                         </div>
                     )}
+
+
 
                     <div className="input-group relative">
                         <button type="submit" className="w-full bg-[#6366f1] hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-full transition-colors"
